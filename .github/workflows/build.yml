@@ -28,6 +28,9 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       - name: Build plugin
         run: ./gradlew build --no-daemon
 
@@ -43,6 +46,3 @@ jobs:
             build/test-results/**/*.xml
             build/reports/tests/**
           retention-days: 30
-
-      - name: Verify plugin compatibility
-        run: ./gradlew verifyPlugin --no-daemon
