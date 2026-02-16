@@ -2,7 +2,7 @@
 
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)]()
-[![IntelliJ Platform](https://img.shields.io/badge/IntelliJ-2024.1%2B-orange)]()
+[![IntelliJ Platform](https://img.shields.io/badge/IntelliJ-2024.3%2B-orange)]()
 
 An IntelliJ IDEA plugin for static race condition detection in Java and Kotlin code. Analyzes field access patterns and thread contexts to identify potential concurrency issues before they occur.
 
@@ -54,7 +54,7 @@ The plugin `.zip` will be in `build/distributions/`.
 
 Once installed, the plugin runs automatically. Open any Java or Kotlin file, and potential threading issues will be highlighted:
 
-![Screenshot Placeholder](docs/screenshot-placeholder.png)
+![Screenshot Placeholder](docs/screenshot.jpg)
 
 ### Configuring Inspections
 
@@ -139,7 +139,7 @@ Contributions are welcome! Please:
 Requirements:
 - JDK 17+
 - Gradle 8.5+
-- IntelliJ IDEA 2024.1+ (for testing)
+- IntelliJ IDEA 2024.3+ (for testing)
 
 ```bash
 ./gradlew runIde  # Launch plugin in development IDE

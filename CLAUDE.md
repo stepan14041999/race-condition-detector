@@ -17,7 +17,7 @@
 - Тесты: **JUnit 5 + `LightJavaCodeInsightFixtureTestCase`**
 - Инспекции наследуют **`AbstractBaseJavaLocalInspectionTool`**, регистрируются в `plugin.xml` как `<localInspection>`
 - Build: **Gradle + IntelliJ Platform Gradle Plugin 2.x**
-- Platform: **IntelliJ IDEA 2024.1+** (platformVersion 241+)
+- Platform: **IntelliJ IDEA 2024.3+** (platformVersion 243+, compatible up to 253.*)
 
 ## Структура пакетов
 

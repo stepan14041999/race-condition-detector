@@ -3,10 +3,10 @@
     <name>Race Condition Detector</name>
     <vendor>RaceDetector</vendor>
 
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 
     <change-notes><![CDATA[
-        <h3>Version 1.0.0 (Initial Release)</h3>
+        <h3>Version 1.0.1 (Initial Release)</h3>
         <ul>
             <li><strong>Core Inspections:</strong>
                 <ul>
