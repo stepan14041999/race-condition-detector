@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.racedetector"
-version = "1.0.1"
+version = "1.0.3"
 
 repositories {
     mavenCentral()
@@ -33,6 +33,11 @@ intellijPlatform {
         ideaVersion {
             sinceBuild = "243"
             untilBuild = "253.*"
+        }
+    }
+    pluginVerification {
+        ides {
+            ide(org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdeaCommunity, "2024.3")
         }
     }
 }
