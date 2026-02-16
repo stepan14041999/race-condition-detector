@@ -52,18 +52,12 @@ object FalsePositiveFilter {
     }
 
     /**
-     * Check if class is a test class (heuristic: file is in test sources)
+     * Check if class is a test class based on annotations only.
+     * We don't check file paths to avoid false positives on test-created code.
      */
     fun isInTestClass(psiClass: PsiClass): Boolean {
-        // Primary check: file is in test sources directory
-        val virtualFile = psiClass.containingFile?.virtualFile ?: return false
-        val path = virtualFile.path
-
-        // Check for common test source patterns
-        val isInTestDir = path.contains("/test/") || path.contains("\\test\\") ||
-                          path.contains("/tests/") || path.contains("\\tests\\")
-
-        if (isInTestDir) return true
+        // Primary check: class has test annotations
+        if (hasTestAnnotations(psiClass)) return true
 
         // Secondary check: class name matches test naming conventions (more specific patterns)
         val className = psiClass.name ?: return false
@@ -73,6 +67,27 @@ object FalsePositiveFilter {
                className.endsWith("TestCase") ||
                className.matches(Regex(".*Test\\d+")) || // e.g., MyTest1, Test123
                className.startsWith("Test") && className.length > 4 // e.g., TestSuite but not just "Test"
+    }
+
+    /**
+     * Check if class has JUnit test annotations
+     */
+    private fun hasTestAnnotations(psiClass: PsiClass): Boolean {
+        // Check class-level annotations
+        val classAnnotations = psiClass.modifierList?.annotations?.mapNotNull { it.qualifiedName } ?: emptyList()
+        if (classAnnotations.any { it.contains("RunWith") || it.contains("ExtendWith") }) {
+            return true
+        }
+
+        // Check if any method has @Test annotation
+        for (method in psiClass.methods) {
+            val methodAnnotations = method.modifierList?.annotations?.mapNotNull { it.qualifiedName } ?: emptyList()
+            if (methodAnnotations.any { it.contains("Test") }) {
+                return true
+            }
+        }
+
+        return false
     }
 
     /**

@@ -12,6 +12,8 @@ import com.racedetector.folia.FoliaEventThreadMapper
 import com.racedetector.folia.FoliaProjectDetector
 import com.racedetector.folia.FoliaSchedulerResolver
 import com.racedetector.settings.RaceDetectorSettings
+import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.uast.*
 
 object ThreadContextResolver {
@@ -34,6 +36,12 @@ object ThreadContextResolver {
     internal fun resolveLocal(element: PsiElement): ThreadContext {
         var psi: PsiElement? = element
         while (psi != null) {
+            // Kotlin-specific: check for KtLambdaExpression directly
+            if (psi is KtLambdaExpression) {
+                val result = checkKotlinLambdaContext(psi)
+                if (result != null) return result
+            }
+
             val uElement = psi.toUElement()
 
             if (uElement is ULambdaExpression) {
@@ -49,6 +57,34 @@ object ThreadContextResolver {
             psi = psi.parent
         }
         return ThreadContext.Unknown
+    }
+
+    /**
+     * Checks Kotlin lambda context by walking up to find enclosing call expression.
+     */
+    private fun checkKotlinLambdaContext(ktLambda: KtLambdaExpression): ThreadContext? {
+        var parent = ktLambda.parent
+        var depth = 0
+        while (parent != null && depth++ < 10) {
+            // Check for KtCallExpression
+            if (parent is KtCallExpression) {
+                val calleeText = parent.calleeExpression?.text
+                if (calleeText == "Thread") {
+                    return ThreadContext.WorkerThread("new Thread()")
+                }
+                // Convert to UAST and check
+                val uCall = parent.toUElement() as? UCallExpression
+                if (uCall != null) {
+                    checkCallForThreading(uCall)?.let { return it }
+                }
+            }
+            // Stop at function/class boundaries
+            if (parent.javaClass.name.contains("KtFunction") || parent.javaClass.name.contains("KtClass")) {
+                break
+            }
+            parent = parent.parent
+        }
+        return null
     }
 
     /**
@@ -146,10 +182,20 @@ object ThreadContextResolver {
         // Fallback: walk up PSI from the lambda to find the enclosing call expression
         val psiLambda = lambda.sourcePsi ?: return null
         var psi: PsiElement? = psiLambda.parent
-        while (psi != null) {
+        var stepsRemaining = 20  // limit search depth
+        while (psi != null && stepsRemaining-- > 0) {
             val uElement = psi.toUElement()
             if (uElement is UCallExpression) {
                 checkCallForThreading(uElement)?.let { return it }
+            }
+            // For Kotlin, also check if text matches threading patterns
+            val text = psi.text
+            if (text != null && text.startsWith("Thread")) {
+                // Kotlin: Thread { lambda } pattern
+                if (psi.toUElement() is UCallExpression) {
+                    val call = psi.toUElement() as UCallExpression
+                    checkCallForThreading(call)?.let { return it }
+                }
             }
             // Stop at method/class boundaries
             if (psi is PsiMethod || psi is PsiClass) break
@@ -161,6 +207,7 @@ object ThreadContextResolver {
     }
 
     private fun checkCallForThreading(call: UCallExpression): ThreadContext? {
+
         // Check Folia scheduler contexts first (if this is a Folia project)
         val project = call.sourcePsi?.project
         if (project != null && FoliaProjectDetector.isFoliaProject(project)) {

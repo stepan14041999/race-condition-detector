@@ -14,8 +14,8 @@
 
 - Язык плагина: **Kotlin**
 - Анализ кода: **UAST** (не голый PSI) для единообразной поддержки Java + Kotlin
-- Тесты: **JUnit 5 + `LightJavaCodeInsightFixtureTestCase`**
-- Инспекции наследуют **`AbstractBaseJavaLocalInspectionTool`**, регистрируются в `plugin.xml` как `<localInspection>`
+- Тесты: **JUnit 4 + `LightJavaCodeInsightFixtureTestCase`** (166 тестов)
+- Инспекции наследуют **`AbstractBaseUastLocalInspectionTool`**, регистрируются в `plugin.xml` как `<localInspection>`
 - Build: **Gradle + IntelliJ Platform Gradle Plugin 2.x**
 - Platform: **IntelliJ IDEA 2024.3+** (platformVersion 243+, compatible up to 253.*)
 

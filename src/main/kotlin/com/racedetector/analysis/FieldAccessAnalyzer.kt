@@ -19,8 +19,13 @@ object FieldAccessAnalyzer {
     private val ANALYSIS_CACHE_KEY = Key.create<CachedValue<List<FieldAnalysisResult>>>("racedetector.fieldAnalysis")
 
     fun analyze(psiClass: PsiClass, uClass: UClass? = null): List<FieldAnalysisResult> {
+        // If uClass is provided explicitly, compute directly without caching to preserve UAST context
+        if (uClass != null) {
+            return computeAnalysis(psiClass, uClass)
+        }
+
         return CachedValuesManager.getCachedValue(psiClass, ANALYSIS_CACHE_KEY) {
-            // Don't capture uClass in lambda to avoid PSI leaks - convert to PsiClass instead
+            // Re-convert to UAST inside the lambda (safe for caching)
             val result = computeAnalysis(psiClass, null)
             CachedValueProvider.Result.create(result, PsiModificationTracker.MODIFICATION_COUNT)
         }
