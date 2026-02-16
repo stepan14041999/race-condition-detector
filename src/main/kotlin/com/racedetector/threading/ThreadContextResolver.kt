@@ -20,6 +20,9 @@ object ThreadContextResolver {
 
     private val CALLER_CHAIN_KEY = Key.create<CachedValue<ThreadContext>>("racedetector.callerChainContext")
 
+    private val maxParentDepth: Int
+        get() = RaceDetectorSettings.getInstance().maxParentTraversalDepth
+
     fun resolve(element: PsiElement): ThreadContext {
         val local = resolveLocal(element)
         if (local != ThreadContext.Unknown) return local
@@ -35,7 +38,10 @@ object ThreadContextResolver {
      */
     internal fun resolveLocal(element: PsiElement): ThreadContext {
         var psi: PsiElement? = element
-        while (psi != null) {
+        var depth = 0
+        while (psi != null && depth++ < maxParentDepth) {
+            ProgressManager.checkCanceled()
+
             // Kotlin-specific: check for KtLambdaExpression directly
             if (psi is KtLambdaExpression) {
                 val result = checkKotlinLambdaContext(psi)
@@ -92,7 +98,8 @@ object ThreadContextResolver {
      */
     private fun findEnclosingPsiMethod(element: PsiElement): PsiMethod? {
         var psi: PsiElement? = element
-        while (psi != null) {
+        var depth = 0
+        while (psi != null && depth++ < maxParentDepth) {
             if (psi is PsiMethod) return psi
             val uElement = psi.toUElement()
             if (uElement is UMethod) return uElement.javaPsi
@@ -169,9 +176,10 @@ object ThreadContextResolver {
     }
 
     private fun checkLambdaContext(lambda: ULambdaExpression): ThreadContext? {
-        // First try UAST parent chain
+        // First try UAST parent chain with depth limit
         var uastAncestor: UElement? = lambda.uastParent
-        while (uastAncestor != null) {
+        var depth = 0
+        while (uastAncestor != null && depth++ < maxParentDepth) {
             if (uastAncestor is UCallExpression) {
                 checkCallForThreading(uastAncestor)?.let { return it }
                 break
@@ -184,23 +192,16 @@ object ThreadContextResolver {
         var psi: PsiElement? = psiLambda.parent
         var stepsRemaining = 20  // limit search depth
         while (psi != null && stepsRemaining-- > 0) {
+            ProgressManager.checkCanceled()
             val uElement = psi.toUElement()
             if (uElement is UCallExpression) {
                 checkCallForThreading(uElement)?.let { return it }
             }
-            // For Kotlin, also check if text matches threading patterns
-            val text = psi.text
-            if (text != null && text.startsWith("Thread")) {
-                // Kotlin: Thread { lambda } pattern
-                if (psi.toUElement() is UCallExpression) {
-                    val call = psi.toUElement() as UCallExpression
-                    checkCallForThreading(call)?.let { return it }
-                }
-            }
             // Stop at method/class boundaries
             if (psi is PsiMethod || psi is PsiClass) break
-            // Kotlin: KtClass also serves as class boundary
-            if (psi.javaClass.name.contains("KtClass")) break
+            // Kotlin: KtClass/KtFunction also serves as boundary
+            val className = psi.javaClass.name
+            if (className.contains("KtClass") || className.contains("KtFunction")) break
             psi = psi.parent
         }
         return null
@@ -255,10 +256,10 @@ object ThreadContextResolver {
         }
 
         // Kotlin: Thread { ... } where UAST kind might not be CONSTRUCTOR_CALL
-        if (methodName == "Thread" || call.sourcePsi?.text?.startsWith("Thread") == true) {
+        if (methodName == "Thread") {
             val classRef = call.classReference
             val refName = classRef?.resolvedName
-                ?: classRef?.sourcePsi?.text?.substringBefore(' ')?.substringBefore('{')?.substringBefore('(')?.trim()
+                ?: classRef?.sourcePsi?.firstChild?.text
             if (refName == "Thread") {
                 return ThreadContext.WorkerThread("new Thread()")
             }

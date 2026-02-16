@@ -1,5 +1,6 @@
 package com.racedetector.sync
 
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiField
 import com.intellij.psi.PsiModifier
@@ -7,6 +8,7 @@ import com.intellij.psi.PsiSynchronizedStatement
 import com.intellij.psi.util.PsiTreeUtil
 import com.racedetector.analysis.SyncProtection
 import com.racedetector.settings.RaceDetectorSettings
+
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UField
 import org.jetbrains.uast.UMethod
@@ -116,9 +118,11 @@ object SynchronizationChecker {
     }
 
     private fun isInsideKotlinSynchronized(element: PsiElement): Boolean {
-        // Walk UAST parent chain
+        val maxDepth = RaceDetectorSettings.getInstance().maxParentTraversalDepth
+        // Walk UAST parent chain with depth limit to prevent infinite loops
         var uElement = element.toUElement()
-        while (uElement != null) {
+        var depth = 0
+        while (uElement != null && depth++ < maxDepth) {
             if (uElement is UCallExpression && uElement.methodName == "synchronized") {
                 return true
             }
@@ -126,12 +130,9 @@ object SynchronizationChecker {
         }
         // Fallback: walk PSI parent chain checking each element
         var psi: PsiElement? = element.parent
-        while (psi != null) {
-            // Try UAST conversion
-            val u = psi.toUElement()
-            if (u is UCallExpression && u.methodName == "synchronized") {
-                return true
-            }
+        depth = 0
+        while (psi != null && depth++ < maxDepth) {
+            ProgressManager.checkCanceled()
             // Direct PSI check for Kotlin call expression named "synchronized"
             if (psi.javaClass.name.contains("KtCallExpression")) {
                 val callee = psi.firstChild

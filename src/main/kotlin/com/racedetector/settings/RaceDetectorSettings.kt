@@ -27,6 +27,7 @@ class RaceDetectorSettings : PersistentStateComponent<RaceDetectorSettings.State
         ),
         var foliaEnabled: FoliaMode = FoliaMode.AUTO_DETECT,
         var callchainDepth: Int = 4,
+        var maxParentTraversalDepth: Int = 50,
         var enableSpringChecks: Boolean = true,
         var enableAndroidChecks: Boolean = true
     )
@@ -61,6 +62,9 @@ class RaceDetectorSettings : PersistentStateComponent<RaceDetectorSettings.State
 
     val callchainDepth: Int
         get() = myState.callchainDepth
+
+    val maxParentTraversalDepth: Int
+        get() = myState.maxParentTraversalDepth
 
     val enableSpringChecks: Boolean
         get() = myState.enableSpringChecks

@@ -12,6 +12,7 @@ class RaceDetectorConfigurable : Configurable {
     private lateinit var safeAnnotationsText: String
     private lateinit var foliaMode: RaceDetectorSettings.FoliaMode
     private var callchainDepth: Int = 4
+    private var maxParentTraversalDepth: Int = 50
     private var enableSpringChecks: Boolean = true
     private var enableAndroidChecks: Boolean = true
 
@@ -23,6 +24,7 @@ class RaceDetectorConfigurable : Configurable {
         safeAnnotationsText = settings.customSafeAnnotations.joinToString("\n")
         foliaMode = settings.foliaEnabled
         callchainDepth = settings.callchainDepth
+        maxParentTraversalDepth = settings.maxParentTraversalDepth
         enableSpringChecks = settings.enableSpringChecks
         enableAndroidChecks = settings.enableAndroidChecks
 
@@ -74,7 +76,13 @@ class RaceDetectorConfigurable : Configurable {
                 row("Call chain analysis depth:") {
                     spinner(1..10)
                         .bindIntValue(::callchainDepth)
-                        .comment("Maximum depth for caller chain analysis (default: 4)")
+                        .comment("Maximum depth for cross-method caller chain analysis (default: 4)")
+                }
+
+                row("Parent traversal depth:") {
+                    spinner(10..200)
+                        .bindIntValue(::maxParentTraversalDepth)
+                        .comment("Maximum PSI/UAST parent chain depth within a file (default: 50)")
                 }
             }
 
@@ -105,6 +113,7 @@ class RaceDetectorConfigurable : Configurable {
                 currentSafeAnnotations != settings.customSafeAnnotations ||
                 foliaMode != settings.foliaEnabled ||
                 callchainDepth != settings.callchainDepth ||
+                maxParentTraversalDepth != settings.maxParentTraversalDepth ||
                 enableSpringChecks != settings.enableSpringChecks ||
                 enableAndroidChecks != settings.enableAndroidChecks
     }
@@ -124,6 +133,7 @@ class RaceDetectorConfigurable : Configurable {
 
         state.foliaEnabled = foliaMode
         state.callchainDepth = callchainDepth
+        state.maxParentTraversalDepth = maxParentTraversalDepth
         state.enableSpringChecks = enableSpringChecks
         state.enableAndroidChecks = enableAndroidChecks
 
@@ -135,6 +145,7 @@ class RaceDetectorConfigurable : Configurable {
         safeAnnotationsText = settings.customSafeAnnotations.joinToString("\n")
         foliaMode = settings.foliaEnabled
         callchainDepth = settings.callchainDepth
+        maxParentTraversalDepth = settings.maxParentTraversalDepth
         enableSpringChecks = settings.enableSpringChecks
         enableAndroidChecks = settings.enableAndroidChecks
     }
