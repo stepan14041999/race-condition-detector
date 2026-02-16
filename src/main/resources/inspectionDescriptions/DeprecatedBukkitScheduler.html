@@ -1,0 +1,60 @@
+<html>
+<body>
+<p>Reports usage of deprecated <code>BukkitScheduler</code> API in Folia projects.</p>
+
+<p><strong>Why this is a problem:</strong></p>
+<ul>
+  <li>Folia does not support the legacy <code>BukkitScheduler</code> API</li>
+  <li>Methods like <code>runTask()</code>, <code>runTaskLater()</code>, <code>runTaskTimer()</code> will throw exceptions</li>
+  <li>Folia requires using the new region-aware scheduler APIs</li>
+</ul>
+
+<p><strong>Example (Before):</strong></p>
+<pre><code>
+public class MyPlugin extends JavaPlugin {
+    @Override
+    public void onEnable() {
+        Bukkit.getScheduler().runTaskTimer(this, () -> {  // ⚠ Deprecated in Folia
+            // Do something
+        }, 0L, 20L);
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using GlobalRegionScheduler):</strong></p>
+<pre><code>
+public class MyPlugin extends JavaPlugin {
+    @Override
+    public void onEnable() {
+        Bukkit.getGlobalRegionScheduler().runAtFixedRate(this, task -> {
+            // Do something
+        }, 1L, 20L);
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using RegionScheduler for location-specific tasks):</strong></p>
+<pre><code>
+public void scheduleAt(Location location) {
+    Bukkit.getRegionScheduler().runDelayed(plugin, location, task -> {
+        // Runs on the region thread for this location
+    }, 20L);
+}
+</code></pre>
+
+<p><strong>Example (After - using AsyncScheduler for async tasks):</strong></p>
+<pre><code>
+public void doAsyncWork() {
+    Bukkit.getAsyncScheduler().runNow(plugin, task -> {
+        // Heavy computation or I/O
+    });
+}
+</code></pre>
+
+<p><strong>References:</strong></p>
+<ul>
+  <li><a href="https://docs.papermc.io/folia/reference/scheduler-api">Folia: Scheduler API</a></li>
+  <li><a href="https://docs.papermc.io/folia/dev/api-changes">Folia: API Changes</a></li>
+</ul>
+</body>
+</html>

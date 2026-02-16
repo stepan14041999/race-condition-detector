@@ -1,0 +1,55 @@
+<html>
+<body>
+<p>Reports cross-context API access in Folia projects (accessing Bukkit/Spigot APIs from wrong thread context).</p>
+
+<p><strong>Why this is a problem:</strong></p>
+<ul>
+  <li>Folia uses a regionalized threading model where different regions run on different threads</li>
+  <li>Accessing entity/world/chunk data from the wrong thread can cause crashes or data corruption</li>
+  <li>Operations must be scheduled on the correct region/entity thread</li>
+</ul>
+
+<p><strong>Example (Before):</strong></p>
+<pre><code>
+public class MyPlugin extends JavaPlugin {
+    @Override
+    public void onEnable() {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.sendMessage("Hello!");  // ⚠ Accessing player from async thread
+            }
+        }, 0L, 20L);
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using GlobalRegionScheduler):</strong></p>
+<pre><code>
+public class MyPlugin extends JavaPlugin {
+    @Override
+    public void onEnable() {
+        Bukkit.getGlobalRegionScheduler().runAtFixedRate(this, task -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.sendMessage("Hello!");  // Safe on global region thread
+            }
+        }, 1L, 20L);
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using EntityScheduler):</strong></p>
+<pre><code>
+public void damagePlayer(Player player) {
+    player.getScheduler().run(plugin, task -> {
+        player.damage(5.0);  // Safe on entity's thread
+    }, null);
+}
+</code></pre>
+
+<p><strong>References:</strong></p>
+<ul>
+  <li><a href="https://docs.papermc.io/folia/reference/region-logic">Folia: Region Logic</a></li>
+  <li><a href="https://docs.papermc.io/folia/reference/scheduler-api">Folia: Scheduler API</a></li>
+</ul>
+</body>
+</html>

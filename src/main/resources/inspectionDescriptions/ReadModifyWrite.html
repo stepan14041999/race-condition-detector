@@ -1,0 +1,52 @@
+<html>
+<body>
+<p>Reports non-atomic read-modify-write operations on shared fields (like <code>count++</code>, <code>x += y</code>).</p>
+
+<p><strong>Why this is a problem:</strong></p>
+<ul>
+  <li>Operations like <code>count++</code> are actually three separate operations: read, modify, write</li>
+  <li>Multiple threads executing <code>count++</code> concurrently can lose updates</li>
+  <li><code>volatile</code> provides visibility but not atomicity — <code>volatile int x; x++;</code> is still not thread-safe</li>
+</ul>
+
+<p><strong>Example (Before):</strong></p>
+<pre><code>
+public class Statistics {
+    private volatile int totalRequests;  // ⚠ volatile doesn't help here
+
+    public void recordRequest() {
+        totalRequests++;  // ⚠ Not atomic — lost updates possible
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using AtomicInteger):</strong></p>
+<pre><code>
+public class Statistics {
+    private final AtomicInteger totalRequests = new AtomicInteger();
+
+    public void recordRequest() {
+        totalRequests.incrementAndGet();
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using synchronized):</strong></p>
+<pre><code>
+public class Statistics {
+    private int totalRequests;
+
+    public synchronized void recordRequest() {
+        totalRequests++;
+    }
+}
+</code></pre>
+
+<p><strong>References:</strong></p>
+<ul>
+  <li><a href="https://jcip.net/">Java Concurrency in Practice, Section 2.3: Compound Actions</a></li>
+  <li><a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/atomic/package-summary.html">java.util.concurrent.atomic Package Summary</a></li>
+  <li><a href="https://docs.oracle.com/javase/specs/jls/se17/html/jls-17.html#jls-17.4.5">JLS: volatile Fields</a></li>
+</ul>
+</body>
+</html>

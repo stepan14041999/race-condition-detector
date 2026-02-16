@@ -1,0 +1,66 @@
+<html>
+<body>
+<p>Reports unsafe shared state in Folia plugin classes and event listeners.</p>
+
+<p><strong>Why this is a problem:</strong></p>
+<ul>
+  <li>In Folia, different regions/entities run concurrently on different threads</li>
+  <li>Event listeners and plugin methods may be called simultaneously from multiple region threads</li>
+  <li>Mutable shared fields without proper synchronization cause race conditions</li>
+</ul>
+
+<p><strong>Example (Before):</strong></p>
+<pre><code>
+public class PlayerTracker implements Listener {
+    private int onlineCount = 0;  // ⚠ Shared mutable state
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        onlineCount++;  // Multiple region threads may execute concurrently
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        onlineCount--;
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using AtomicInteger):</strong></p>
+<pre><code>
+public class PlayerTracker implements Listener {
+    private final AtomicInteger onlineCount = new AtomicInteger();
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        onlineCount.incrementAndGet();
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        onlineCount.decrementAndGet();
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using ConcurrentHashMap):</strong></p>
+<pre><code>
+public class PlayerDataManager implements Listener {
+    private final ConcurrentHashMap&lt;UUID, PlayerData&gt; dataMap =
+        new ConcurrentHashMap&lt;&gt;();
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        PlayerData data = loadData(event.getPlayer());
+        dataMap.put(event.getPlayer().getUniqueId(), data);
+    }
+}
+</code></pre>
+
+<p><strong>References:</strong></p>
+<ul>
+  <li><a href="https://docs.papermc.io/folia/reference/region-logic">Folia: Region Logic</a></li>
+  <li><a href="https://docs.papermc.io/folia/dev/threading-model">Folia: Threading Model</a></li>
+</ul>
+</body>
+</html>

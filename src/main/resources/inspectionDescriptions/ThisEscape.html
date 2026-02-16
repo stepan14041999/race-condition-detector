@@ -1,0 +1,58 @@
+<html>
+<body>
+<p>Reports when <code>this</code> reference escapes during object construction, or when overridable methods are called from constructors.</p>
+
+<p><strong>Why this is a problem:</strong></p>
+<ul>
+  <li>When <code>this</code> escapes during construction, other threads may observe a partially initialized object</li>
+  <li>Calling overridable methods in constructors allows subclass methods to access uninitialized fields</li>
+  <li>This violates the "safe publication" principle from the Java Memory Model</li>
+</ul>
+
+<p><strong>Example (Before - this escape):</strong></p>
+<pre><code>
+public class EventSource {
+    public EventSource(EventListener listener) {
+        listener.onCreated(this);  // ⚠ 'this' escapes before construction completes
+    }
+}
+</code></pre>
+
+<p><strong>Example (Before - overridable method call):</strong></p>
+<pre><code>
+public class Base {
+    protected String name;
+
+    public Base() {
+        initialize();  // ⚠ Overridable method called in constructor
+    }
+
+    protected void initialize() {
+        // Subclass override may access uninitialized fields
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using factory method):</strong></p>
+<pre><code>
+public class EventSource {
+    private EventSource() {
+        // Private constructor
+    }
+
+    public static EventSource create(EventListener listener) {
+        EventSource source = new EventSource();
+        listener.onCreated(source);
+        return source;
+    }
+}
+</code></pre>
+
+<p><strong>References:</strong></p>
+<ul>
+  <li><a href="https://jcip.net/">Java Concurrency in Practice, Section 3.2: Safe Construction Practices</a></li>
+  <li><a href="https://wiki.sei.cmu.edu/confluence/display/java/TSM01-J.+Do+not+let+the+this+reference+escape+during+object+construction">CERT: TSM01-J</a></li>
+  <li><a href="https://wiki.sei.cmu.edu/confluence/display/java/MET05-J.+Ensure+that+constructors+do+not+call+overridable+methods">CERT: MET05-J</a></li>
+</ul>
+</body>
+</html>

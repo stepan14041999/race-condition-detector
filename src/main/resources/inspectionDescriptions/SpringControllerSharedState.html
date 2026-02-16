@@ -1,0 +1,68 @@
+<html>
+<body>
+<p>Reports mutable instance fields in singleton Spring beans (<code>@Controller</code>, <code>@RestController</code>, <code>@Service</code>).</p>
+
+<p><strong>Why this is a problem:</strong></p>
+<ul>
+  <li>Spring beans are singletons by default — one instance handles all requests</li>
+  <li>Each HTTP request runs in a different thread, all sharing the same bean instance</li>
+  <li>Mutable instance fields create shared mutable state across concurrent requests</li>
+</ul>
+
+<p><strong>Example (Before):</strong></p>
+<pre><code>
+@RestController
+public class UserController {
+    private User currentUser;  // ⚠ Shared across all requests!
+
+    @GetMapping("/user/{id}")
+    public User getUser(@PathVariable String id) {
+        currentUser = userService.findById(id);  // Thread 1
+        // ... other operations ...
+        return currentUser;  // May return wrong user if Thread 2 runs concurrently
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using method-local variables):</strong></p>
+<pre><code>
+@RestController
+public class UserController {
+    // No mutable instance fields
+
+    @GetMapping("/user/{id}")
+    public User getUser(@PathVariable String id) {
+        User user = userService.findById(id);  // Local variable — thread-safe
+        // ... other operations ...
+        return user;
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using ThreadLocal for request context):</strong></p>
+<pre><code>
+@RestController
+public class UserController {
+    private final ThreadLocal&lt;User&gt; currentUser = new ThreadLocal&lt;&gt;();
+
+    @GetMapping("/user/{id}")
+    public User getUser(@PathVariable String id) {
+        try {
+            User user = userService.findById(id);
+            currentUser.set(user);
+            // ... other operations ...
+            return currentUser.get();
+        } finally {
+            currentUser.remove();  // Clean up
+        }
+    }
+}
+</code></pre>
+
+<p><strong>References:</strong></p>
+<ul>
+  <li><a href="https://docs.spring.io/spring-framework/docs/current/reference/html/core.html#beans-factory-scopes">Spring Bean Scopes</a></li>
+  <li><a href="https://jcip.net/">Java Concurrency in Practice, Section 3.3: Thread Confinement</a></li>
+</ul>
+</body>
+</html>

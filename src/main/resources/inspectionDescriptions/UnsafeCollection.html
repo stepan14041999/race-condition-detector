@@ -1,0 +1,64 @@
+<html>
+<body>
+<p>Reports unsafe collections (like <code>HashMap</code>, <code>ArrayList</code>) accessed from multiple thread contexts without synchronization.</p>
+
+<p><strong>Why this is a problem:</strong></p>
+<ul>
+  <li>Collections like <code>HashMap</code> and <code>ArrayList</code> are not thread-safe</li>
+  <li>Concurrent modification can cause <code>ConcurrentModificationException</code>, infinite loops, or data corruption</li>
+  <li>Even read-only access requires proper synchronization if any thread can modify the collection</li>
+</ul>
+
+<p><strong>Example (Before):</strong></p>
+<pre><code>
+public class UserRegistry {
+    private final Map&lt;String, User&gt; users = new HashMap&lt;&gt;();  // ⚠ Not thread-safe
+
+    public void addUser(User user) {
+        users.put(user.getId(), user);  // Called from multiple threads
+    }
+
+    public User getUser(String id) {
+        return users.get(id);  // Called from multiple threads
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using ConcurrentHashMap):</strong></p>
+<pre><code>
+public class UserRegistry {
+    private final Map&lt;String, User&gt; users = new ConcurrentHashMap&lt;&gt;();
+
+    public void addUser(User user) {
+        users.put(user.getId(), user);
+    }
+
+    public User getUser(String id) {
+        return users.get(id);
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using Collections.synchronizedMap):</strong></p>
+<pre><code>
+public class UserRegistry {
+    private final Map&lt;String, User&gt; users =
+        Collections.synchronizedMap(new HashMap&lt;&gt;());
+
+    public void addUser(User user) {
+        users.put(user.getId(), user);
+    }
+
+    public User getUser(String id) {
+        return users.get(id);
+    }
+}
+</code></pre>
+
+<p><strong>References:</strong></p>
+<ul>
+  <li><a href="https://jcip.net/">Java Concurrency in Practice, Chapter 5: Building Blocks</a></li>
+  <li><a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/package-summary.html">java.util.concurrent Package Summary</a></li>
+</ul>
+</body>
+</html>

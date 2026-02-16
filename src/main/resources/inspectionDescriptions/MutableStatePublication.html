@@ -1,0 +1,66 @@
+<html>
+<body>
+<p>Reports when mutable internal collections are exposed via public methods without defensive copying.</p>
+
+<p><strong>Why this is a problem:</strong></p>
+<ul>
+  <li>Returning a reference to an internal collection allows external code to modify it</li>
+  <li>This breaks encapsulation and can lead to race conditions</li>
+  <li>External modifications bypass any synchronization or validation logic</li>
+</ul>
+
+<p><strong>Example (Before):</strong></p>
+<pre><code>
+public class Department {
+    private final List&lt;Employee&gt; employees = new ArrayList&lt;&gt;();
+
+    public List&lt;Employee&gt; getEmployees() {
+        return employees;  // ⚠ Returns mutable internal state
+    }
+}
+
+// Client code can now modify the internal list:
+dept.getEmployees().clear();  // Oops!
+</code></pre>
+
+<p><strong>Example (After - using Collections.unmodifiableList):</strong></p>
+<pre><code>
+public class Department {
+    private final List&lt;Employee&gt; employees = new ArrayList&lt;&gt;();
+
+    public List&lt;Employee&gt; getEmployees() {
+        return Collections.unmodifiableList(employees);
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using List.copyOf in Java 10+):</strong></p>
+<pre><code>
+public class Department {
+    private final List&lt;Employee&gt; employees = new ArrayList&lt;&gt;();
+
+    public List&lt;Employee&gt; getEmployees() {
+        return List.copyOf(employees);
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - defensive copy):</strong></p>
+<pre><code>
+public class Department {
+    private final List&lt;Employee&gt; employees = new ArrayList&lt;&gt;();
+
+    public List&lt;Employee&gt; getEmployees() {
+        return new ArrayList&lt;&gt;(employees);
+    }
+}
+</code></pre>
+
+<p><strong>References:</strong></p>
+<ul>
+  <li><a href="https://jcip.net/">Java Concurrency in Practice, Section 3.2: Safe Publication</a></li>
+  <li><a href="https://www.oracle.com/java/technologies/javase/seccodeguide.html">Secure Coding Guidelines for Java SE</a></li>
+  <li><a href="https://rules.sonarsource.com/java/RSPEC-2384">SonarSource: Mutable members should not be stored or returned directly</a></li>
+</ul>
+</body>
+</html>

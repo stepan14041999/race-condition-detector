@@ -1,0 +1,64 @@
+<html>
+<body>
+<p>Reports fields that are accessed from multiple threads without proper synchronization.</p>
+
+<p><strong>Why this is a problem:</strong></p>
+<ul>
+  <li>Non-synchronized access to shared mutable state can lead to race conditions</li>
+  <li>Reading a field in one thread while another thread writes to it may produce inconsistent or stale values</li>
+  <li>The Java Memory Model doesn't guarantee visibility of writes across threads without synchronization</li>
+</ul>
+
+<p><strong>Example (Before):</strong></p>
+<pre><code>
+public class Counter {
+    private int count;  // ⚠ Warning: accessed from multiple threads
+
+    public void increment() {
+        count++;  // Called from worker thread
+    }
+
+    public int getCount() {
+        return count;  // Called from main thread
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using volatile):</strong></p>
+<pre><code>
+public class Counter {
+    private volatile int count;
+
+    public void increment() {
+        count++;
+    }
+
+    public int getCount() {
+        return count;
+    }
+}
+</code></pre>
+
+<p><strong>Example (After - using AtomicInteger):</strong></p>
+<pre><code>
+public class Counter {
+    private final AtomicInteger count = new AtomicInteger();
+
+    public void increment() {
+        count.incrementAndGet();
+    }
+
+    public int getCount() {
+        return count.get();
+    }
+}
+</code></pre>
+
+<p><strong>References:</strong></p>
+<ul>
+  <li><a href="https://jcip.net/">Java Concurrency in Practice, Chapter 3: Sharing Objects</a></li>
+  <li><a href="https://docs.oracle.com/javase/specs/jls/se17/html/jls-17.html#jls-17.4">Java Language Specification: Memory Model</a></li>
+  <li><a href="https://docs.oracle.com/javase/tutorial/essential/concurrency/sync.html">The Java™ Tutorials: Synchronization</a></li>
+</ul>
+</body>
+</html>

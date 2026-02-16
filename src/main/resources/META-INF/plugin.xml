@@ -1,29 +1,198 @@
-<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
-    <id>ru.derekbrown.thread-checker</id>
+    <id>com.racedetector</id>
+    <name>Race Condition Detector</name>
+    <vendor>RaceDetector</vendor>
 
-    <!-- Public plugin name should be written in Title Case.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
-    <name>Thread-checker</name>
+    <version>1.0.0</version>
 
-    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor url="https://www.yourcompany.com">YourCompany</vendor>
+    <change-notes><![CDATA[
+        <h3>Version 1.0.0 (Initial Release)</h3>
+        <ul>
+            <li><strong>Core Inspections:</strong>
+                <ul>
+                    <li>Race condition detection for fields accessed from multiple threads</li>
+                    <li>Check-then-act pattern detection (containsKey/get, isEmpty/get, etc.)</li>
+                    <li>Non-atomic read-modify-write operations (++, +=, etc.)</li>
+                    <li>'this' escape in constructors</li>
+                    <li>Unsafe collection usage (HashMap, ArrayList, etc.)</li>
+                    <li>Mutable state publication via getters</li>
+                </ul>
+            </li>
+            <li><strong>Framework Support:</strong>
+                <ul>
+                    <li>Spring Framework: Detects shared state in @Controller, @RestController, @Service beans</li>
+                    <li>Bukkit/Spigot: Thread context analysis for scheduler APIs</li>
+                    <li>Folia: Regionalized threading model support with cross-context detection</li>
+                </ul>
+            </li>
+            <li><strong>Quick Fixes:</strong>
+                <ul>
+                    <li>Add volatile modifier</li>
+                    <li>Replace with AtomicInteger/AtomicLong</li>
+                    <li>Replace with ConcurrentHashMap/CopyOnWriteArrayList</li>
+                    <li>Wrap with synchronized block</li>
+                    <li>Replace with computeIfAbsent/putIfAbsent</li>
+                    <li>Wrap with Collections.unmodifiable*/List.copyOf</li>
+                    <li>Extract to factory method</li>
+                </ul>
+            </li>
+            <li><strong>Configuration:</strong>
+                <ul>
+                    <li>Configurable inspection severity levels</li>
+                    <li>False positive suppression patterns</li>
+                    <li>Enable/disable Spring and Folia checks</li>
+                </ul>
+            </li>
+            <li><strong>Performance:</strong>
+                <ul>
+                    <li>Cached field access analysis</li>
+                    <li>Progress cancellation support for long operations</li>
+                    <li>Optimized UAST traversal</li>
+                </ul>
+            </li>
+        </ul>
+    ]]></change-notes>
 
-    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Enter short description for your plugin here.<br>
-        <em>most HTML tags may be used</em>
+        <h2>Race Condition Detector</h2>
+        <p>
+            Static analysis tool for detecting potential race conditions, data races, and threading issues
+            in Java and Kotlin applications. Analyzes field access patterns, thread contexts, and
+            synchronization mechanisms to identify concurrency bugs before runtime.
+        </p>
+
+        <h3>Key Features</h3>
+        <ul>
+            <li><strong>Race Condition Detection</strong> — Identifies fields accessed from multiple threads without proper synchronization</li>
+            <li><strong>Check-Then-Act Patterns</strong> — Catches non-atomic compound operations on collections</li>
+            <li><strong>Read-Modify-Write Operations</strong> — Detects non-atomic operations like <code>count++</code> on shared fields</li>
+            <li><strong>'this' Escape Detection</strong> — Finds unsafe object publication during construction</li>
+            <li><strong>Unsafe Collections</strong> — Flags thread-unsafe collections in multi-threaded contexts</li>
+            <li><strong>Spring Framework Support</strong> — Detects shared state in singleton beans (@Controller, @Service, etc.)</li>
+            <li><strong>Folia/Paper Support</strong> — Specialized checks for Minecraft server plugin development</li>
+        </ul>
+
+        <h3>Automatic Quick-Fixes</h3>
+        <p>
+            The plugin provides intelligent quick-fixes including: adding <code>volatile</code> modifiers,
+            replacing with <code>AtomicInteger</code>, converting to <code>ConcurrentHashMap</code>,
+            wrapping with <code>synchronized</code>, and more.
+        </p>
+
+        <h3>Thread Context Awareness</h3>
+        <p>
+            Recognizes Java built-in threading APIs, Spring <code>@Async</code>/<code>@Scheduled</code>,
+            Bukkit/Spigot scheduler APIs, and Folia's regionalized threading model.
+        </p>
+
+        <p>
+            <a href="https://github.com/yourusername/thread-checker">GitHub</a> |
+            <a href="https://github.com/yourusername/thread-checker/issues">Report Issues</a>
+        </p>
     ]]></description>
 
-    <!-- Product and plugin compatibility requirements.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+    <depends>org.jetbrains.kotlin</depends>
 
-    <!-- Extension points defined by the plugin.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <applicationService
+            serviceImplementation="com.racedetector.settings.RaceDetectorSettings"/>
 
+        <applicationConfigurable
+            parentId="editor.preferences.inspection"
+            instance="com.racedetector.settings.RaceDetectorConfigurable"
+            id="com.racedetector.settings.RaceDetectorConfigurable"
+            displayName="Race Condition Detector"/>
+
+        <localInspection
+            language="UAST"
+            shortName="RaceCondition"
+            displayName="Race condition detector"
+            groupName="Threading Issues"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.racedetector.inspections.RaceConditionInspection"/>
+
+        <localInspection
+            language="UAST"
+            shortName="CheckThenAct"
+            displayName="Check-then-act without synchronization"
+            groupName="Threading Issues"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.racedetector.inspections.CheckThenActInspection"/>
+
+        <localInspection
+            language="UAST"
+            shortName="ReadModifyWrite"
+            displayName="Non-atomic read-modify-write operation"
+            groupName="Threading Issues"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.racedetector.inspections.ReadModifyWriteInspection"/>
+
+        <localInspection
+            language="UAST"
+            shortName="ThisEscape"
+            displayName="'this' escape in constructor"
+            groupName="Threading Issues"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.racedetector.inspections.ThisEscapeInspection"/>
+
+        <localInspection
+            language="UAST"
+            shortName="UnsafeCollection"
+            displayName="Unsafe collection in multi-threaded context"
+            groupName="Threading Issues"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.racedetector.inspections.UnsafeCollectionInspection"/>
+
+        <localInspection
+            language="UAST"
+            shortName="MutableStatePublication"
+            displayName="Mutable internal state exposed via public method"
+            groupName="Threading Issues"
+            enabledByDefault="true"
+            level="WEAK WARNING"
+            implementationClass="com.racedetector.inspections.MutableStatePublicationInspection"/>
+
+        <localInspection
+            language="UAST"
+            shortName="SpringControllerSharedState"
+            displayName="Mutable shared state in singleton Spring bean"
+            groupName="Threading Issues"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.racedetector.inspections.SpringControllerSharedStateInspection"/>
+
+        <localInspection
+            language="UAST"
+            shortName="FoliaCrossContextAccess"
+            displayName="Folia cross-context API access"
+            groupName="Folia Threading Issues"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.racedetector.folia.FoliaCrossContextInspection"/>
+
+        <localInspection
+            language="UAST"
+            shortName="FoliaSharedState"
+            displayName="Unsafe shared state in Folia plugin/listener"
+            groupName="Folia Threading Issues"
+            enabledByDefault="true"
+            level="ERROR"
+            implementationClass="com.racedetector.folia.FoliaSharedStateInspection"/>
+
+        <localInspection
+            language="UAST"
+            shortName="DeprecatedBukkitScheduler"
+            displayName="Deprecated BukkitScheduler API usage"
+            groupName="Folia Threading Issues"
+            enabledByDefault="true"
+            level="ERROR"
+            implementationClass="com.racedetector.folia.DeprecatedBukkitSchedulerInspection"/>
     </extensions>
 </idea-plugin>

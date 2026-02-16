@@ -1,0 +1,51 @@
+<html>
+<body>
+<p>Reports check-then-act patterns on collections without synchronization, which are prone to race conditions.</p>
+
+<p><strong>Why this is a problem:</strong></p>
+<ul>
+  <li>Between the "check" and the "act", another thread may modify the collection</li>
+  <li>This violates atomicity — the two operations should be executed as a single atomic unit</li>
+  <li>Common patterns like <code>if (map.containsKey(key)) map.get(key)</code> are not thread-safe</li>
+</ul>
+
+<p><strong>Example (Before):</strong></p>
+<pre><code>
+Map&lt;String, User&gt; cache = new HashMap&lt;&gt;();
+
+public User getUser(String id) {
+    if (cache.containsKey(id)) {  // ⚠ Check
+        return cache.get(id);      // ⚠ Act — another thread may have removed it
+    }
+    return loadUser(id);
+}
+</code></pre>
+
+<p><strong>Example (After - using computeIfAbsent):</strong></p>
+<pre><code>
+Map&lt;String, User&gt; cache = new ConcurrentHashMap&lt;&gt;();
+
+public User getUser(String id) {
+    return cache.computeIfAbsent(id, this::loadUser);
+}
+</code></pre>
+
+<p><strong>Example (After - using synchronization):</strong></p>
+<pre><code>
+Map&lt;String, User&gt; cache = new HashMap&lt;&gt;();
+
+public synchronized User getUser(String id) {
+    if (cache.containsKey(id)) {
+        return cache.get(id);
+    }
+    return loadUser(id);
+}
+</code></pre>
+
+<p><strong>References:</strong></p>
+<ul>
+  <li><a href="https://jcip.net/">Java Concurrency in Practice, Section 2.3: Compound Actions</a></li>
+  <li><a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentMap.html">ConcurrentMap Javadoc</a></li>
+</ul>
+</body>
+</html>

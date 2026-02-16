@@ -1,1 +1,1 @@
-rootProject.name = "thread-checker"
+rootProject.name = "race-condition-detector"
